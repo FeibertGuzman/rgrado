@@ -1,55 +1,39 @@
 import streamlit as st
-import pandas as pd
 import os
 
+# Essential config
 st.set_page_config(
-    page_title="Control de Graduados - Facultad de Ingeniería",
+    page_title="Control de Graduados - Ingeniería",
     page_icon="🎓",
     layout="wide"
 )
 
-st.title("🎓 Control de Estudiantes Graduados")
-st.subheader("Facultad de Ingeniería - Corporación Universitaria Lasallista (UNILASALLISTA)")
+from src.data.loader import load_data
+from src.components.filters import apply_filters
+from src.components.dashboard import render_dashboard
+from src.components.table import render_table
 
-st.markdown("""
-Esta aplicación permite visualizar el estado y los requisitos de grado de los estudiantes de la Facultad de Ingeniería en sus 4 programas.
-""")
-
-EXCEL_FILE = "Requisito de Grado UNILASALLISTA.xlsx"
-
-@st.cache_data
-def load_data():
-    if os.path.exists(EXCEL_FILE):
-        try:
-            df = pd.read_excel(EXCEL_FILE)
-            return df
-        except Exception as e:
-            st.error(f"Error al leer el archivo Excel: {e}")
-            return None
-    else:
-        return None
-
-df = load_data()
-
-if df is not None:
-    st.success(f"✅ Archivo Excel '{EXCEL_FILE}' cargado correctamente.")
+def main():
+    st.sidebar.title("🎓 UNILASALLISTA")
+    st.sidebar.subheader("Facultad de Ingeniería")
+    st.sidebar.markdown("---")
     
-    st.markdown("### Datos de los Estudiantes")
+    menu = ["Dashboard Decanatura", "Vista Detallada"]
+    choice = st.sidebar.radio("Menú Principal:", menu)
+    st.sidebar.markdown("---")
     
-    # Generic text search
-    search = st.text_input("🔍 Buscar estudiante (por nombre, documento o programa si aplica):", "")
+    df = load_data()
     
-    if search:
-        # Filter all string columns for the search term
-        mask = df.astype(str).apply(lambda x: x.str.contains(search, case=False, na=False)).any(axis=1)
-        st.dataframe(df[mask], use_container_width=True)
-    else:
-        st.dataframe(df, use_container_width=True)
+    if df is not None:
+        filtered_df = apply_filters(df)
         
-    st.markdown("### Resumen")
-    st.write(f"Total de registros: **{len(df)}**")
-else:
-    st.warning(f"⚠️ No se encontró el archivo Excel: `{EXCEL_FILE}`. Por favor, asegúrese de cargarlo en la misma carpeta.")
+        if choice == "Dashboard Decanatura":
+            render_dashboard(filtered_df)
+        elif choice == "Vista Detallada":
+            render_table(filtered_df)
+            
+        st.sidebar.markdown("---")
+        st.sidebar.caption("Aplicativo Analítico para la Decanatura de Ingeniería")
 
-st.markdown("---")
-st.caption("Desarrollado para la Facultad de Ingeniería")
+if __name__ == '__main__':
+    main()
